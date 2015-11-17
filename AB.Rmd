@@ -1,0 +1,272 @@
+---
+output: 
+  html_document: 
+    fig_height: 3
+    fig_width: 7.5
+    theme: cerulean
+---
+#A/B Testing of Udacity's Free Trial Screener by Rica Enriquez
+##Experiment Overview: Free Trial Screener
+
+At the time of this experiment, Udacity courses currently have two options on 
+the home page: "start free trial", and "access course materials". If the student
+clicks "start free trial", they will be asked to enter their credit card 
+information, and then they will be enrolled in a free trial for the paid version
+of the course. After 14 days, they will automatically be charged unless they 
+cancel first. If the student clicks "access course materials", they will be able
+to view the videos and take the quizzes for free, but they will not receive 
+coaching support or a verified certificate, and they will not submit their final
+project for feedback.
+
+In the experiment, Udacity tested a change where if the student clicked "start
+free trial", they were asked how much time they had available to devote to the
+course. If the student indicated 5 or more hours per week, they would be taken
+through the checkout process as usual. If they indicated fewer than 5 hours per
+week, a message would appear indicating that Udacity courses usually require a
+greater time commitment for successful completion, and suggesting that the
+student might like to access the course materials for free. At this point, the
+student would have the option to continue enrolling in the free trial, or access
+the course materials for free instead.
+
+The hypothesis was that this might set clearer expectations for students
+upfront, thus reducing the number of frustrated students who left the free trial
+because they didn't have enough time—without significantly reducing the number
+of students to continue past the free trial and eventually complete the course.
+If this hypothesis held true, Udacity could improve the overall student
+experience and improve coaches' capacity to support students who are likely to
+complete the course.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" is set to FALSE for this code chunk. This
+# prevents the code from displaying in the knitted HTML output. You should set
+# echo=FALSE for all code chunks in your file.
+
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+library(GGally)
+library(psych)
+library(gridExtra)
+library(reshape2)
+
+# Set ggplot themes to minimal and color scheme to div
+theme_set(theme_minimal(12))
+color_palette = "div"
+```
+
+###Experiment Design
+####Metric Choice
+The metrics to choose from include:
+
+1. Number of cookies: That is, number of unique cookies to view the course
+overview page. (dmin=3000)
+
+2. Number of user-ids: That is, number of users who enroll in the free trial.
+(dmin=50)
+
+3. Number of clicks: That is, number of unique cookies to click the "Start free
+trial" button (which happens before the free trial screener is trigger).
+(dmin=240)
+
+4. Click-through-probability: That is, number of unique cookies to click the
+"Start free trial" button divided by number of unique cookies to view the course
+overview page. (dmin=0.01)
+
+5. Gross conversion: That is, number of user-ids to complete checkout and enroll
+in the free trial divided by number of unique cookies to click the "Start free
+trial" button. (dmin= 0.01)
+
+6. Retention: That is, number of user-ids to remain enrolled past the 14-day
+boundary (and thus make at least one payment) divided by number of user-ids to
+complete checkout. (dmin=0.01)
+
+7. Net conversion: That is, number of user-ids to remain enrolled past the
+14-day boundary (and thus make at least one payment) divided by the number of
+unique cookies to click the "Start free trial" button. (dmin= 0.0075)
+
+#####Invariant Metrics
+Since invariant metrics should not change between the experiment and control,
+the appropriate invariant metrics for this experiment are the number of cookies,
+the number of clicks, and the click-through-probability. Since the populations 
+before the free trial screener in the experiment and control should be similar, 
+the unique number of visitors to the course overview page, the number of users 
+to click to the free trial page, and the movement of users from the course 
+overview page to the to the initial free trial page should be similar for both 
+cases. These metrics would not be useful as evaluation metrics since they do not
+provide information about the behavior of users after seeing the the free trial 
+screener. Additionally, the other metrics would not be useful as invariant 
+metrics because enrollment and beyond are expected to change if the the trial 
+screener does have an effect.
+
+#####Evauluation Metrics
+The goal of this experiment is to see if the free trial screener has an effect 
+on enrollment beyond the free trial. For my evaluation metrics, I consider the
+following funnel:
+
+Course Overview Page Visits -> Free Trial Page Visits -> Free Trial Enrollment 
+-> Enrollment Past Free Trial
+
+The evaluation metrics to use include:
+
+1. Gross conversion
+
+2. Net conversion
+
+The gross conversion probability provides information about the number of users 
+who enroll in the trial after visiting the free trial page and can show if the 
+screener prevents users from enrolling in a degree. The net conversion
+probability gives a nice summary of the overall number of users that clicked to
+go to the free trial page and stayed enrolled past the trial.
+
+The experiment hopes to reduce the number of students who leave the free trial 
+without significantly reducing the number of students to continue past the free 
+trial and eventually complete the course. In order to launch the full 
+experiment, I would evaluate the gross conversion and net conversion
+differences. The gross conversion probability difference should decrease with
+the free trial screener and be statistically and practical significant.
+Therefore, the minimum confidence interval for the gross conversion difference
+should be at least 0.01, or provide a 1% absolute difference. To ensure that the
+number of students who continue to the free trial and complete the course does
+not significantly decrease, the net conversion probability should not decrease
+significantly with the free trial screener. Therefore, the minimum confidence
+interval for the net conversion difference should decrease at most by 0.0075.
+
+The number of user-ids was not used as invariant metric because user-ids are 
+only made after enrollment, which may be altered by the experiment. 
+Additionally, it was not used an an evaluation metric because there may be more
+or less total user-ids created in the control or experiment. The gross
+conversion provides similar information, but is normalized by the number of
+clicks.
+
+The retention probability could potentially be a useful evaluation metric since 
+it provides information of the users that remain enrolled after the trial.
+However, because the unit of analysis is enrollment, the number of pageviews
+needed to do a proper analysis is much too big and the duration of an experiment
+would be too long. The net conversion probability is a better metric that can
+provide comparable information.
+
+The number of cookies, number of click, and click-through-probability is not 
+used as an evaluation metric because it provides information before the free
+trial screener. Also, they are used as invariant metrics.
+
+####Measuring Standard Deviation
+Assuming a binomial distribution for the evaluation metrics (probabilities), the
+standard deviation, $\sigma$, is calculated with $\sigma = \left(\frac{\hat{p}
+(1-\hat{p})}{N}\right)^{1/2}$.
+
+The analytical standard deviation of the evaluation metrics, using the control
+data are:
+
+Evaluation Metric            Standard Deviation  
+--------------------------   ------------------
+Gross conversion             0.0202         
+Net conversion               0.0156
+--------------------------   ------------------
+
+Before enrollment into the free trial, the unit of diversion is a cookie.
+Afterwards, the unit of diversion is the user-id. When the unit of analysis and 
+unit of diversion do not match, the analytical and empirical variabilities are 
+expected to vary. For both evaluation metrics, the unit analysis is a click,
+which is different from the unit of diversion.
+
+####Sizing
+#####Number of Samples vs. Power
+Using gross conversion and net conversion as evaluation metrics, at $\alpha =
+0.05$ and $\beta = 0.2$, at least 685,325 pageviews are needed for the planned
+analysis (without a Bonferroni correction).
+
+#####Duration vs. Exposure
+I use an exposure fraction of 0.5 for this experiment, which means the duration
+would be 35 days. This was the smallest fraction that would allow the longest
+duration. I did not want all the traffic to go the experiment since there is a
+risk of losing many students with the free trial screener. However, it is not so
+risky that a small population should be tested. The risk is not high because if
+the screener diverts people to enroll later when they have more time, it will
+just displace revenue from those users at a later time. Also, if it diverts
+users who do not have time, it saves Udacity resources.
+
+###Experiment Analysis
+####Sanity Checks
+The following table shows the 95% confidence interval and observed value
+(control group) of the invariant metrics used. Each invariant metric passed the
+sanity check.
+
+Invariant Metric          95% Confidence Interval Observed Value  
+------------------------- ----------------------- --------------
+Number of cookies         0.4988 to 0.5012         0.5006
+Number of clicks          0.4959 to 0.5041         0.5005
+Click-through probability 0.0812 to 0.0830         0.0822
+------------------------- ----------------------- --------------
+
+In calculating the standard error, a fraction of diversion is 0.5 is used for
+pageviews and clicks. For the click-through probability, a binomial distribution
+is assumed in calculating it's standard error using the control group's data.
+
+####Result Analysis
+For the evaluation metrics, I do not use Bonferroni correction since the metrics
+are used and evaluated differently. While we want to show a statistical and 
+practical significant decrease in the gross conversion probability, we do not 
+want significant changes in the net conversion. Again, the hypothesis was to
+reduce the number of students who left the free trial because they didn't have
+enough time—without significantly reducing the number of students to continue
+past the free trial and eventually complete the course. The gross conversion is
+being used to evaluate the first part. If less students enroll in the free
+trial from the beginning, the less students who leave the trial frustrated.
+
+#####Effect Size Tests
+Evaluation Metric 95% Confidence Interval Statistically Significant?  Practically Significant?
+----------------- ----------------------- --------------------------  ------------------------
+Gross conversion  -0.0291 to -0.0120       Yes                         Yes    
+Net conversion    -0.0116 to 0.0019        No                          No            
+----------------- ----------------------- --------------------------  ------------------------
+
+
+#####Sign Tests
+Evaluation Metric p-value Statistically Significant?
+----------------- ------- --------------------------
+Gross conversion  0.0026  Yes                            
+Net conversion    0.6776  No                                     
+----------------- ------- --------------------------
+
+#####Summary
+After analyzing the control and experimental groups, I would recommend launching
+the experiment since there is a significant decrease, practical and statistical,
+in the gross conversion probability, and not a significant change in the net
+conversion probability. In other words, the free-trial screener had led to
+significant decreases in the the number of users who enroll in the free-trial, but
+it has not significantly changed the probability of student staying enrolled past
+the free-trial.
+
+###Follow-Up Experiment
+```{r echo = FALSE, Follow_Up}
+# Give a high-level description of the follow up experiment you would run, what
+# your hypothesis would be, what metrics you would want to measure, what your
+# unit of diversion would be, and your reasoning for these choices.
+```
+
+For a follow-up experiment, I would check if changing the recommended hours in 
+the screening to 10 hours/week sets an even clearer expectations for students 
+upfront, and further reduces the number of frustrated students who leave the 
+free trial. Again, without significantly reducing the number of students to 
+continue past the free trial and eventually complete the course. The Udacity 
+nanodegree timelines assume a 10 hr/week time commitment, and therefore stating 
+a 10 hours/week commitment provides more realistic expectations for students.
+
+This experiment would be very similar to the original experiment. The metrics to 
+measure would include number of pageviews, clicks, enrollments, and payments. 
+With these, I would calculate click-through-probability, gross conversion, and 
+net conversion.
+
+Similarly, the initial unit of diversion is a cookie, although if the student 
+enrolls in the free trial, they are tracked by user-id from that point forward. 
+The same user-id cannot enroll in the free trial twice. For users that do not 
+enroll, their user-id is not tracked in the experiment, even if they were signed
+in when they visited the course overview page.
+
+For this A/B Test, Test A uses 5 hr/week and Test B uses 10 hr/week for their
+time commitment statements. If the hypothesis is true there should be a
+significant decreases in the gross conversion and only insignificant decreases
+in the net conversion (increases are okay).
