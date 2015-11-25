@@ -166,11 +166,10 @@ Gross conversion             0.0202
 Net conversion               0.0156
 --------------------------   ------------------
 
-Before enrollment into the free trial, the unit of diversion is a cookie.
-Afterwards, the unit of diversion is the user-id. When the unit of analysis and 
-unit of diversion do not match, the analytical and empirical variabilities are 
-expected to vary. For both evaluation metrics, the unit analysis is a click,
-which is different from the unit of diversion.
+The unit of diversion is a cookie. When the unit of analysis and unit of
+diversion match, the analytical and empirical variabilities are expected to be
+similar. For both evaluation metrics, the unit of analysis is also a cookie,
+which is the same as the unit of diversion.
 
 ####Sizing
 #####Number of Samples vs. Power
@@ -179,14 +178,12 @@ Using gross conversion and net conversion as evaluation metrics, at $\alpha =
 analysis (without a Bonferroni correction).
 
 #####Duration vs. Exposure
-I use an exposure fraction of 0.5 for this experiment, which means the duration
-would be 35 days. This was the smallest fraction that would allow the longest
-duration. I did not want all the traffic to go the experiment since there is a
-risk of losing many students with the free trial screener. However, it is not so
-risky that a small population should be tested. The risk is not high because if
-the screener diverts people to enroll later when they have more time, it will
-just displace revenue from those users at a later time. Also, if it diverts
-users who do not have time, it saves Udacity resources.
+I use an exposure fraction of 1 for this experiment, which means the duration 
+would be 18 days. All of the traffic is diverted to the experiment since the
+risk is not high because if the screener diverts people to enroll later when
+they have more time, it will just displace revenue from those users at a later
+time. Also, if it diverts users who do not have time, it saves Udacity
+resources.
 
 ###Experiment Analysis
 ####Sanity Checks
@@ -206,15 +203,13 @@ pageviews and clicks. For the click-through probability, a binomial distribution
 is assumed in calculating it's standard error using the control group's data.
 
 ####Result Analysis
-For the evaluation metrics, I do not use Bonferroni correction since the metrics
-are used and evaluated differently. While we want to show a statistical and 
-practical significant decrease in the gross conversion probability, we do not 
-want significant changes in the net conversion. Again, the hypothesis was to
-reduce the number of students who left the free trial because they didn't have
-enough time—without significantly reducing the number of students to continue
-past the free trial and eventually complete the course. The gross conversion is
-being used to evaluate the first part. If less students enroll in the free
-trial from the beginning, the less students who leave the trial frustrated.
+For the evaluation metrics, I do not use the Bonferroni correction since all the
+metrics chosen are used to evaluate the hypothesis and to decide on a launch. We
+want to show a statistical and practical significant decrease in the gross
+conversion probability, and also show that there was not a statistical and
+practical significant decrease in the net conversion. Because both metrics, not 
+just any metric, are used, the decision based on the statistics will already be
+conservative.
 
 #####Effect Size Tests
 Evaluation Metric 95% Confidence Interval Statistically Significant?  Practically Significant?
@@ -232,41 +227,52 @@ Net conversion    0.6776  No
 ----------------- ------- --------------------------
 
 #####Summary
-After analyzing the control and experimental groups, I would recommend launching
-the experiment since there is a significant decrease, practical and statistical,
-in the gross conversion probability, and not a significant change in the net
-conversion probability. In other words, the free-trial screener had led to
-significant decreases in the the number of users who enroll in the free-trial, but
-it has not significantly changed the probability of student staying enrolled past
-the free-trial.
+After analyzing the control and experimental groups, I would not recommend
+launching the experiment. While there is a significant decrease, practical and
+statistical, in the gross conversion probability, the results from the net 
+conversion probability metric show that the practical significance level falls
+within the confidence interval. This shows, that there is enough of a decrease
+in the number of students that click on the free trial button and are enrolled
+beyond the free trial. In other words, the free-trial screener had led to 
+significant decreases in the the number of users who enroll in the free-trial,
+but it has also dropped the overall number of students that stay enrolled beyond
+the free trial.
 
 ###Follow-Up Experiment
-```{r echo = FALSE, Follow_Up}
-# Give a high-level description of the follow up experiment you would run, what
-# your hypothesis would be, what metrics you would want to measure, what your
-# unit of diversion would be, and your reasoning for these choices.
-```
+Another experiment to try in order to reduce the number of students who cancel 
+early in the course is to try a financial incentive. At this early point of the
+degree, some students may not yet see the value of the original $200/month 
+investment. Perhaps one month at a reduced rate will help keep students enrolled.
+For this experiment, students will be told upon enrollment that they only need 
+to pay $100/month for the first month.
 
-For a follow-up experiment, I would check if changing the recommended hours in 
-the screening to 10 hours/week sets an even clearer expectations for students 
-upfront, and further reduces the number of frustrated students who leave the 
-free trial. Again, without significantly reducing the number of students to 
-continue past the free trial and eventually complete the course. The Udacity 
-nanodegree timelines assume a 10 hr/week time commitment, and therefore stating 
-a 10 hours/week commitment provides more realistic expectations for students.
+####Hypothesis
+The hypothesis states that lowering the first month's enrollment cost will 
+increase continued enrollment. If the hypothesis is true, Udacity will need to 
+accept a 50% loss in the first month (similar to the 14 day trial), but it is in
+hopes of more long-term enrollments and more revenue overall.
 
-This experiment would be very similar to the original experiment. The metrics to 
-measure would include number of pageviews, clicks, enrollments, and payments. 
-With these, I would calculate click-through-probability, gross conversion, and 
-net conversion.
+The unit of diversion for this experiment would be user_id since we only care to
+track enrolled students.
 
-Similarly, the initial unit of diversion is a cookie, although if the student 
-enrolls in the free trial, they are tracked by user-id from that point forward. 
-The same user-id cannot enroll in the free trial twice. For users that do not 
-enroll, their user-id is not tracked in the experiment, even if they were signed
-in when they visited the course overview page.
+####Metric Choice
+For this experiment I would want to meaure the following:
 
-For this A/B Test, Test A uses 5 hr/week and Test B uses 10 hr/week for their
-time commitment statements. If the hypothesis is true there should be a
-significant decreases in the gross conversion and only insignificant decreases
-in the net conversion (increases are okay).
+1. Number of user-ids: number of users who enroll in the free trial.
+2. Retention: number of user-ids to remain enrolled past the 14-day boundary 
+(and thus make at least one payment) divided by number of user-ids to enroll in
+the free trial.
+
+I would use the number of user-ids as the invariant metric to make sure that the
+number of enrolled students in the experiment and control are similar. I would 
+then evaluate if lowering the first month's rate was successful in retainng 
+students after the trial by using the retention metric. If there is a significant
+increase in the difference of the retention rates (experiment - control), 
+I would suggest a launch. The practical significance level (dmin) for this 
+experiment could remain low, say 1%, since I do not forsee a substantial amount 
+of work needed to launch a full experiment.
+
+###References
+
+1. https://rpubs.com/superseer/abtesting
+2. http://www.stat.berkeley.edu/~mgoldman/Section0402.pdf
